@@ -10,7 +10,6 @@ import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Computer;
-import hudson.model.Descriptor;
 import hudson.model.Node;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
@@ -35,7 +34,6 @@ import java.util.logging.Logger;
 import javax.servlet.ServletException;
 
 import jenkins.model.Jenkins;
-
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
@@ -56,7 +54,7 @@ import org.kohsuke.stapler.bind.JavaScriptMethod;
  * <p>
  * 
  * @author Norman Baumann
- * @author domi (imod)
+ * @author Dominik Bartholdi (imod)
  */
 public class LibraryBuildStep extends Builder {
 
@@ -66,8 +64,12 @@ public class LibraryBuildStep extends Builder {
 	private final String[] buildStepArgs;
 
 	/**
-	 * The constructor requires 2 arguments: (a) the buildStepId which is the Id
-	 * of the config file, and (b) list of arguments specified as buildStepargs.
+	 * The constructor
+	 * 
+	 * @param buildStepId
+	 *            the Id of the config file
+	 * @param buildStepArgs
+	 *            list of arguments specified as buildStepargs
 	 */
 	@DataBoundConstructor
 	public LibraryBuildStep(String buildStepId, String[] buildStepArgs) {
@@ -83,8 +85,8 @@ public class LibraryBuildStep extends Builder {
 		return buildStepArgs;
 	}
 
-	private Launcher getLastBuiltLauncher(AbstractBuild build, Launcher launcher, BuildListener listener) {
-		AbstractProject project = build.getProject();
+	private Launcher getLastBuiltLauncher(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
+		AbstractProject<?, ?> project = build.getProject();
 		Node lastBuiltOn = project.getLastBuiltOn();
 		Launcher lastBuiltLauncher = launcher;
 		if (lastBuiltOn != null) {
@@ -97,20 +99,19 @@ public class LibraryBuildStep extends Builder {
 	/**
 	 * Perform the build step on the execution host.
 	 * <p>
-	 * This method overrides the default execution method of a Builder. It
-	 * generates a temporary file and copies the content of the predefined
+	 * Generates a temporary file and copies the content of the predefined
 	 * config file (by using the buildStepId) into it. It then copies this file
 	 * into the workspace directory of the execution host and executes it.
 	 */
 	@Override
-	public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
+	public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
 		boolean returnValue = true;
 		Config buildStepConfig = getDescriptor().getBuildStepConfigById(buildStepId);
 		if (buildStepConfig == null) {
-			listener.getLogger().println("Cannot find Build Step with Id \"" + buildStepId + "\". Are you sure it exists?");
+			listener.getLogger().println("Cannot find Build Step with Id '" + buildStepId + "'. Are you sure it exists?");
 			return false;
 		}
-		listener.getLogger().println("Starting build step \"" + buildStepId + "\"");
+		listener.getLogger().println("Starting build step '" + buildStepId + "'");
 		File tempFile = null;
 		try {
 			FilePath workingDir = build.getModuleRoot();
@@ -127,15 +128,14 @@ public class LibraryBuildStep extends Builder {
 			tempFileWriter.close();
 
 			/*
-			 * Analyze interpreter line (and change to desired interpreter)
+			 * Analyze interpreter line (and use the desired interpreter)
 			 */
 			ArgumentListBuilder args = new ArgumentListBuilder();
-			String interpreter = new String("bash");
 			if (data.startsWith("#!")) {
 				String interpreterLine = data.substring(2, data.indexOf("\n"));
 				String[] interpreterElements = interpreterLine.split("\\s+");
 				// Add interpreter to arguments list
-				interpreter = interpreterElements[0];
+				String interpreter = interpreterElements[0];
 				args.add(interpreter);
 				listener.getLogger().println("Using custom interpreter: " + interpreterLine);
 				// Add addition parameter to arguments list
@@ -144,6 +144,10 @@ public class LibraryBuildStep extends Builder {
 				}
 				args.add(tempFile.getName());
 			} else {
+				// the shell executable is already configured for the Shell
+				// task, reuse it
+				final Shell.DescriptorImpl shellDescriptor = (Shell.DescriptorImpl) Jenkins.getInstance().getDescriptor(Shell.class);
+				final String interpreter = shellDescriptor.getShellOrDefault(workingDir.getChannel());
 				args.add(interpreter, tempFile.getName());
 			}
 
@@ -167,34 +171,29 @@ public class LibraryBuildStep extends Builder {
 			/*
 			 * Execute command remotely
 			 */
-			
-			final Shell.DescriptorImpl shellDescriptor = (Shell.DescriptorImpl)Jenkins.getInstance().getDescriptor(Shell.class);
-			shellDescriptor.getShellOrDefault(workingDir);
-			
-			
-			listener.getLogger().println("Executing temp file \"" + tempFile.getPath() + "\"");
+			listener.getLogger().println("Executing temp file '" + tempFile.getPath() + "'");
 			int r = lastBuiltLauncher.launch().cmds(args).envs(env).stderr(listener.getLogger()).stdout(listener.getLogger()).pwd(workingDir).join();
 			returnValue = (r == 0);
 
 		} catch (IOException e) {
 			Util.displayIOException(e, listener);
-			e.printStackTrace(listener.fatalError("Cannot create temporary build step \"" + buildStepConfig.name + "\""));
+			e.printStackTrace(listener.fatalError("Cannot create temporary build step '" + buildStepConfig.name + "'"));
 			returnValue = false;
 		} catch (Exception e) {
-			e.printStackTrace(listener.fatalError("Caught exception while loading build step \"" + buildStepConfig.name + "\""));
+			e.printStackTrace(listener.fatalError("Caught exception while loading build step '" + buildStepConfig.name + "'"));
 			returnValue = false;
 		} finally {
 			if (tempFile != null) {
 				try {
 					tempFile.delete();
 				} catch (Exception e) {
-					e.printStackTrace(listener.fatalError("Cannot remove temporary build step file \"" + tempFile.getName() + "\""));
+					e.printStackTrace(listener.fatalError("Cannot remove temporary build step file '" + tempFile.getName() + "'"));
 					returnValue = false;
 				}
 			}
 		}
 
-		listener.getLogger().println("Leaving build step \"" + buildStepConfig.name + "\"");
+		listener.getLogger().println("Leaving build step '" + buildStepConfig.name + "'");
 		return returnValue;
 	}
 
@@ -230,6 +229,7 @@ public class LibraryBuildStep extends Builder {
 		/**
 		 * Enables this builder for all kinds of projects.
 		 */
+		@Override
 		public boolean isApplicable(Class<? extends AbstractProject> aClass) {
 			return true;
 		}
@@ -237,6 +237,7 @@ public class LibraryBuildStep extends Builder {
 		/**
 		 * This human readable name is used in the configuration screen.
 		 */
+		@Override
 		public String getDisplayName() {
 			return Messages.buildstep_name();
 		}
@@ -249,7 +250,7 @@ public class LibraryBuildStep extends Builder {
 		 *         {@link BuildStepConfigProvider}.
 		 */
 		public Collection<Config> getAvailableBuildTemplates() {
-			List<Config> allConfigs = new ArrayList(getBuildStepConfigProvider().getAllConfigs());
+			List<Config> allConfigs = new ArrayList<Config>(getBuildStepConfigProvider().getAllConfigs());
 			Collections.sort(allConfigs, new Comparator<Config>() {
 				public int compare(Config o1, Config o2) {
 					return o1.name.compareTo(o2.name);
@@ -277,6 +278,24 @@ public class LibraryBuildStep extends Builder {
 				return config.args;
 			}
 			return new ArrayList<ScriptConfig.Arg>();
+		}
+
+		@JavaScriptMethod
+		public String getArgsDescription(String configId) {
+			final ScriptConfig config = getBuildStepConfigById(configId);
+			if (config != null && config.args != null && !config.args.isEmpty()) {
+				StringBuilder sb = new StringBuilder("Required arguments: ");
+				int i = 1;
+				for (Iterator<Arg> iterator = config.args.iterator(); iterator.hasNext(); i++) {
+					Arg arg = iterator.next();
+					sb.append(i).append(". ").append(arg.name);
+					if (iterator.hasNext()) {
+						sb.append(" | ");
+					}
+				}
+				return sb.toString();
+			}
+			return "No arguments required";
 		}
 
 		private BuildStepConfigProvider getBuildStepConfigProvider() {
@@ -336,7 +355,7 @@ public class LibraryBuildStep extends Builder {
 	 *            variable, if it follows this pattern: ${XXX}
 	 * @return value of the build parameter or the origin passed string
 	 */
-	public static String resolveVariable(VariableResolver<String> variableResolver, String potentalVariable) {
+	private String resolveVariable(VariableResolver<String> variableResolver, String potentalVariable) {
 		String value = potentalVariable;
 		if (potentalVariable != null) {
 			if (potentalVariable.startsWith("${") && potentalVariable.endsWith("}")) {

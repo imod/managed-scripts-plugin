@@ -1,18 +1,21 @@
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
-xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+	<st:once>
+		<script type="text/javascript" src="http://localhost:8080/plugin/managed-scripts/js/managed-scripts.js" />
+	</st:once>
 	<j:choose>
 		<j:when test="${empty(descriptor.availableBuildTemplates)}">
-				<f:entry title="">
-					<div>
-						No build templates are defined. Please define one
-						<a href="/configfiles">here</a>.
-					</div>
-				</f:entry>
+			<f:entry title="">
+				<div>
+					No build templates are defined. Please define one
+					<a href="/configfiles">here</a>
+					.
+				</div>
+			</f:entry>
 		</j:when>
 		<j:otherwise>
-			
-			<f:entry title="${%Build template}" field="buildStepContent">
-				<select name="buildStepId" onChange="javascript:initDetailLink();" >
+			<f:entry title="${%Script}" field="buildStepContent">
+				<select name="buildStepId" onChange="ms_initDetailLinks();ms_showParams(this, this.value);">
 					<option value="">(Default)</option>
 					<j:forEach var="inst" items="${descriptor.availableBuildTemplates}" varStatus="loop">
 						<j:choose>
@@ -25,48 +28,38 @@ xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 						</j:choose>
 					</j:forEach>
 				</select>
-				<a target="_blank" name="showDetail" href="" style="display:none;"> view selected script </a>
+				<a target="_blank" name="showDetail" href="" style="display:none;" onclick="window.open(this.href,'window','width=900,height=640,resizable,scrollbars,toolbar,menubar') ;return false;"> view selected script</a>
+				<div name="argumentDescription" />
 				<f:block>
-				  <table>
-				    <f:optionalBlock name="defineArgs" title="Define script arguments" checked="${!empty(instance.buildStepArgs)}">
-				      <f:entry title="${%Argument list}" field="buildStepArgs">
-							<f:repeatable var="arg" items="${instance.buildStepArgs}" name="buildStepArgs" noAddButton="true" minimum="1">
-								<table width="100%">
-									<f:entry>
-										<input type="text" name="arg" value="${arg}" />
-										<input type="button" name="delete_button" value="${%Delete}" class="repeatable-delete show-if-not-only" style="margin-left: 1em;" />
-										<input type="button" name="add_button" value="${%Add argument}" class="repeatable-add show-if-last" />
-									</f:entry>
-								</table>
-							</f:repeatable>
-					</f:entry>
-				    </f:optionalBlock>
-				  </table>
+					<table>
+						<f:optionalBlock name="defineArgs" title="Define script arguments" checked="${!empty(instance.buildStepArgs)}">
+							<f:entry title="${%Argument list}" field="buildStepArgs">
+								<f:repeatable var="arg" items="${instance.buildStepArgs}" name="buildStepArgs" noAddButton="true" minimum="1">
+									<table width="100%">
+										<f:entry>
+											<input type="text" name="arg" value="${arg}" />
+											<input type="button" name="delete_button" value="${%Delete}" class="repeatable-delete show-if-not-only" style="margin-left: 1em;" />
+											<input type="button" name="add_button" value="${%Add argument}" class="repeatable-add show-if-last" />
+										</f:entry>
+									</table>
+								</f:repeatable>
+							</f:entry>
+						</f:optionalBlock>
+					</table>
 				</f:block>
 			</f:entry>
 		</j:otherwise>
 	</j:choose>
-	
+	<st:bind var="desc" value="${descriptor}"/>
 	<st:once>
-		<script>
-		function initDetailLink(){
-			var all = new Array();
-	        all = document.getElementsByName('buildStepId');
-	       alert(all);
-	       for(var i = 0; i &lt; all.length; i++) {
-	            var selId = document.getElementsByName('buildStepId').item(i).value;
-	            if(selId.length != 0){
-	            	document.getElementsByName('showDetail').item(i).href="/configfiles/show?id=".concat(selId);
-		    		document.getElementsByName('showDetail').item(i).style.display = 'block';
-		    	}else{
-		    		document.getElementsByName('showDetail').item(i).style.display = 'none';
-		    	}
-	        }
-	       
-		}
-		initDetailLink();
-		alert('hello');
-	    </script>
-    </st:once>
-	
+		<script type="text/javascript">
+			ms_initDetailLinks();
+			
+			function ms_showParams(referenceTag, scriptId){
+				desc.getArgsDescription(scriptId, function(t) {
+			      ms_descArguments(referenceTag, t.responseObject());			      
+			    });
+			}			
+		</script>
+	</st:once>
 </j:jelly>
