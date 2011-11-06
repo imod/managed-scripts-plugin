@@ -54,9 +54,9 @@ import org.kohsuke.stapler.bind.JavaScriptMethod;
  * @author Norman Baumann
  * @author Dominik Bartholdi (imod)
  */
-public class LibraryBuildStep extends Builder {
+public class ScriptBuildStep extends Builder {
 
-	private static Logger log = Logger.getLogger(LibraryBuildStep.class.getName());
+	private static Logger log = Logger.getLogger(ScriptBuildStep.class.getName());
 
 	private final String buildStepId;
 	private final String[] buildStepArgs;
@@ -70,7 +70,7 @@ public class LibraryBuildStep extends Builder {
 	 *            list of arguments specified as buildStepargs
 	 */
 	@DataBoundConstructor
-	public LibraryBuildStep(String buildStepId, String[] buildStepArgs) {
+	public ScriptBuildStep(String buildStepId, String[] buildStepArgs) {
 		this.buildStepId = buildStepId;
 		this.buildStepArgs = buildStepArgs;
 	}
@@ -106,10 +106,10 @@ public class LibraryBuildStep extends Builder {
 		boolean returnValue = true;
 		Config buildStepConfig = getDescriptor().getBuildStepConfigById(buildStepId);
 		if (buildStepConfig == null) {
-			listener.getLogger().println("Cannot find Build Step with Id '" + buildStepId + "'. Are you sure it exists?");
+			listener.getLogger().println("Cannot find script with Id '" + buildStepId + "'. Are you sure it exists?");
 			return false;
 		}
-		listener.getLogger().println("Starting build step '" + buildStepId + "'");
+		listener.getLogger().println("executing script '" + buildStepId + "'");
 		File tempFile = null;
 		try {
 			FilePath workingDir = build.getModuleRoot();
@@ -163,7 +163,7 @@ public class LibraryBuildStep extends Builder {
 			FilePath source = new FilePath(tempFile);
 			FilePath dest = new FilePath(Computer.currentComputer().getChannel(), workingDir + "/" + tempFile.getName());
 
-			listener.getLogger().println("Copying temporary file to " + Computer.currentComputer().getHostName() + ":" + workingDir + "/" + tempFile.getName());
+			log.log(Level.FINE, "Copying temporary file to " + Computer.currentComputer().getHostName() + ":" + workingDir + "/" + tempFile.getName());
 			source.copyTo(dest);
 
 			/*
@@ -175,23 +175,22 @@ public class LibraryBuildStep extends Builder {
 
 		} catch (IOException e) {
 			Util.displayIOException(e, listener);
-			e.printStackTrace(listener.fatalError("Cannot create temporary build step '" + buildStepConfig.name + "'"));
+			e.printStackTrace(listener.fatalError("Cannot create temporary script '" + buildStepConfig.name + "'"));
 			returnValue = false;
 		} catch (Exception e) {
-			e.printStackTrace(listener.fatalError("Caught exception while loading build step '" + buildStepConfig.name + "'"));
+			e.printStackTrace(listener.fatalError("Caught exception while loading script '" + buildStepConfig.name + "'"));
 			returnValue = false;
 		} finally {
 			if (tempFile != null) {
 				try {
 					tempFile.delete();
 				} catch (Exception e) {
-					e.printStackTrace(listener.fatalError("Cannot remove temporary build step file '" + tempFile.getName() + "'"));
+					e.printStackTrace(listener.fatalError("Cannot remove temporary script file '" + tempFile.getName() + "'"));
 					returnValue = false;
 				}
 			}
 		}
-
-		listener.getLogger().println("Leaving build step '" + buildStepConfig.name + "'");
+		log.log(Level.FINE, "finished script step");
 		return returnValue;
 	}
 
@@ -202,11 +201,11 @@ public class LibraryBuildStep extends Builder {
 	}
 
 	/**
-	 * Descriptor for {@link LibraryBuildStep}.
+	 * Descriptor for {@link ScriptBuildStep}.
 	 */
 	@Extension(ordinal = 50)
 	public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
-		final Logger logger = Logger.getLogger(LibraryBuildStep.class.getName());
+		final Logger logger = Logger.getLogger(ScriptBuildStep.class.getName());
 
 		/**
 		 * Enables this builder for all kinds of projects.
@@ -229,7 +228,7 @@ public class LibraryBuildStep extends Builder {
 		 * when creating a build step. Ordered by name.
 		 * 
 		 * @return A collection of config files of type
-		 *         {@link BuildStepConfigProvider}.
+		 *         {@link ScriptBuildStepConfigProvider}.
 		 */
 		public Collection<Config> getAvailableBuildTemplates() {
 			List<Config> allConfigs = new ArrayList<Config>(getBuildStepConfigProvider().getAllConfigs());
@@ -280,7 +279,7 @@ public class LibraryBuildStep extends Builder {
 					return "No arguments required";
 				}
 			}
-			return "";
+			return "please select a script!";
 		}
 
 		/**
@@ -299,9 +298,9 @@ public class LibraryBuildStep extends Builder {
 			}
 		}
 
-		private BuildStepConfigProvider getBuildStepConfigProvider() {
+		private ScriptBuildStepConfigProvider getBuildStepConfigProvider() {
 			ExtensionList<ConfigProvider> providers = ConfigProvider.all();
-			return providers.get(BuildStepConfigProvider.class);
+			return providers.get(ScriptBuildStepConfigProvider.class);
 		}
 
 		/**
@@ -314,7 +313,7 @@ public class LibraryBuildStep extends Builder {
 		 * @return A LibraryBuildStep instance.
 		 */
 		@Override
-		public LibraryBuildStep newInstance(StaplerRequest req, JSONObject json) {
+		public ScriptBuildStep newInstance(StaplerRequest req, JSONObject json) {
 			logger.log(Level.FINE, "New instance of LibraryBuildStep requested with JSON data:");
 			logger.log(Level.FINE, json.toString(2));
 
@@ -333,14 +332,14 @@ public class LibraryBuildStep extends Builder {
 							args[i++] = arguments.next().getString("arg");
 						}
 					}
-					return new LibraryBuildStep(id, args);
+					return new ScriptBuildStep(id, args);
 				} else {
 					String[] args = new String[1];
 					args[0] = argsObj.getString("arg");
-					return new LibraryBuildStep(id, args);
+					return new ScriptBuildStep(id, args);
 				}
 			} else {
-				return new LibraryBuildStep(id, null);
+				return new ScriptBuildStep(id, null);
 			}
 		}
 	}

@@ -31,7 +31,7 @@ import org.jenkinsci.lib.configprovider.model.ContentType;
 import org.jenkinsci.lib.configprovider.model.Config;
 
 @Extension
-public class BuildStepConfigProvider extends AbstractConfigProvider {
+public class ScriptBuildStepConfigProvider extends AbstractConfigProvider {
 
 	@Override
 	public ConfigDescription getConfigDescription() {
