@@ -1,20 +1,19 @@
-/**
- * initializes the detail links for all managed script builder
- */
-function ms_initDetailLinks(){
+
+function ms_initDetailLink(referenceTag){
+   var selId = referenceTag.value;
    var all = new Array();
    all = document.getElementsByName('buildStepId');
    for(var i = 0; i < all.length; i++) {
-        var selId = all.item(i).value;
-        var allDetails = document.getElementsByName('showDetail');
-        if(selId.length != 0){
-        	allDetails.item(i).href="/configfiles/show?id=".concat(selId);
-        	allDetails.item(i).style.display = 'block';
-    	}else{
-    		allDetails.item(i).style.display = 'none';
-    	}
-    }
-   
+	   if(referenceTag == all.item(i)){
+		   var detailsLinkTag = document.getElementsByName('showDetailLink').item(i);
+		   if(selId.length != 0){
+			   detailsLinkTag .href="/configfiles/show?id=".concat(selId);
+			   detailsLinkTag .style.display = 'block';
+			}else{
+			   detailsLinkTag .style.display = 'none';
+			}
+	   }
+   }
 }
 
 
@@ -28,6 +27,7 @@ function ms_descArguments(referenceTag, desc){
 	   }
     }	   
 }
+
 
 
 

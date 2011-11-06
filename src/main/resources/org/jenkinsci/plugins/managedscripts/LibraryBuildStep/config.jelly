@@ -15,7 +15,7 @@
 		</j:when>
 		<j:otherwise>
 			<f:entry title="${%Script}" field="buildStepContent">
-				<select name="buildStepId" onChange="ms_initDetailLinks();ms_showParams(this, this.value);">
+				<select name="buildStepId" onChange="ms_initDetailLink(this);ms_showParams(this, this.value);">
 					<option value="">(Default)</option>
 					<j:forEach var="inst" items="${descriptor.availableBuildTemplates}" varStatus="loop">
 						<j:choose>
@@ -28,7 +28,7 @@
 						</j:choose>
 					</j:forEach>
 				</select>
-				<a target="_blank" name="showDetail" href="" style="display:none;" onclick="window.open(this.href,'window','width=900,height=640,resizable,scrollbars,toolbar,menubar') ;return false;"> view selected script</a>
+				<a target="_blank" name="showDetailLink" href="" style="display:none;" onclick="window.open(this.href,'window','width=900,height=640,resizable,scrollbars,toolbar,menubar') ;return false;"> view selected script</a>
 				<div name="argumentDescription" />
 				<f:block>
 					<table>
@@ -53,13 +53,22 @@
 	<st:bind var="desc" value="${descriptor}"/>
 	<st:once>
 		<script type="text/javascript">
-			ms_initDetailLinks();
-			
 			function ms_showParams(referenceTag, scriptId){
 				desc.getArgsDescription(scriptId, function(t) {
 			      ms_descArguments(referenceTag, t.responseObject());			      
 			    });
-			}			
+			}
+			
+						
+			Event.observe(window, 'load', function() { 
+				var all = new Array();
+	   			all = document.getElementsByName('buildStepId');
+	   			alert(all);
+				for(var i = 0; i &lt; all.length; i++) {
+					ms_initDetailLink(all.item(i));
+					ms_showParams(all.item(i), all.item(i).value);
+				}
+			});
 		</script>
 	</st:once>
 </j:jelly>

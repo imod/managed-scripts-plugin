@@ -31,8 +31,6 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.servlet.ServletException;
-
 import jenkins.model.Jenkins;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -211,22 +209,6 @@ public class LibraryBuildStep extends Builder {
 		final Logger logger = Logger.getLogger(LibraryBuildStep.class.getName());
 
 		/**
-		 * Performs on-the-fly validation of the form field 'buildStepId'.
-		 * 
-		 * @param value
-		 *            This parameter receives the value that the user has typed.
-		 * @return Indicates the outcome of the validation. This is sent to the
-		 *         browser.
-		 */
-		public FormValidation doCheckBuildStepId(@QueryParameter String value) throws IOException, ServletException {
-			logger.log(Level.WARNING, "in doCheckBuildStepId '" + value + "'");
-			if (value == null || value.length() == 0) {
-				return FormValidation.error("Please choose a build script from the drop down box.");
-			}
-			return FormValidation.ok();
-		}
-
-		/**
 		 * Enables this builder for all kinds of projects.
 		 */
 		@Override
@@ -271,31 +253,50 @@ public class LibraryBuildStep extends Builder {
 			return (ScriptConfig) getBuildStepConfigProvider().getConfigById(id);
 		}
 
-		@JavaScriptMethod
-		public List<Arg> getArgsForConfig(String configId) {
-			final ScriptConfig config = getBuildStepConfigById(configId);
-			if (config != null) {
-				return config.args;
-			}
-			return new ArrayList<ScriptConfig.Arg>();
-		}
-
+		/**
+		 * gets the argument description to be displayed on the screen when
+		 * selecting a config in the dropdown
+		 * 
+		 * @param configId
+		 *            the config id to get the arguments description for
+		 * @return the description
+		 */
 		@JavaScriptMethod
 		public String getArgsDescription(String configId) {
 			final ScriptConfig config = getBuildStepConfigById(configId);
-			if (config != null && config.args != null && !config.args.isEmpty()) {
-				StringBuilder sb = new StringBuilder("Required arguments: ");
-				int i = 1;
-				for (Iterator<Arg> iterator = config.args.iterator(); iterator.hasNext(); i++) {
-					Arg arg = iterator.next();
-					sb.append(i).append(". ").append(arg.name);
-					if (iterator.hasNext()) {
-						sb.append(" | ");
+			if (config != null) {
+				if (config.args != null && !config.args.isEmpty()) {
+					StringBuilder sb = new StringBuilder("Required arguments: ");
+					int i = 1;
+					for (Iterator<Arg> iterator = config.args.iterator(); iterator.hasNext(); i++) {
+						Arg arg = iterator.next();
+						sb.append(i).append(". ").append(arg.name);
+						if (iterator.hasNext()) {
+							sb.append(" | ");
+						}
 					}
+					return sb.toString();
+				} else {
+					return "No arguments required";
 				}
-				return sb.toString();
 			}
-			return "No arguments required";
+			return "";
+		}
+
+		/**
+		 * validate that an existing config was chosen
+		 * 
+		 * @param value
+		 *            the configId
+		 * @return
+		 */
+		public FormValidation doCheckBuildStepId(@QueryParameter String buildStepId) {
+			final ScriptConfig config = getBuildStepConfigById(buildStepId);
+			if (config != null) {
+				return FormValidation.ok();
+			} else {
+				return FormValidation.error("you must select a valid script");
+			}
 		}
 
 		private BuildStepConfigProvider getBuildStepConfigProvider() {
