@@ -28,6 +28,10 @@ function ms_descArguments(referenceTag, desc){
     }	   
 }
 
-
+function ms_showParams(referenceTag, scriptId){
+	desc.getArgsDescription(scriptId, function(t) {
+      ms_descArguments(referenceTag, t.responseObject());			      
+    });
+}
 
 

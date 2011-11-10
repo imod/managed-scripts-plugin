@@ -1,7 +1,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
 	<st:once>
-		<script type="text/javascript" src="http://localhost:8080/plugin/managed-scripts/js/managed-scripts.js" />
+		<script type="text/javascript" src="/plugin/managed-scripts/js/managed-scripts.js" />
 	</st:once>
 	<j:choose>
 		<j:when test="${empty(descriptor.availableBuildTemplates)}">
@@ -53,11 +53,7 @@
 	<st:bind var="desc" value="${descriptor}"/>
 	<st:once>
 		<script type="text/javascript">
-			function ms_showParams(referenceTag, scriptId){
-				desc.getArgsDescription(scriptId, function(t) {
-			      ms_descArguments(referenceTag, t.responseObject());			      
-			    });
-			}
+			
 			
 						
 			Event.observe(window, 'load', function() { 
